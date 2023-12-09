@@ -7,6 +7,7 @@ namespace CityAPI.Model
         public int Id { get; set; }
         public string? Name { get; set; }
         public bool IsComplete { get; set; }
+        public int RoutesCount { get; set; }
         public DateTime? Date { get; set; }
         public ICollection<CityRoute>? Routes { get; set; }
     }

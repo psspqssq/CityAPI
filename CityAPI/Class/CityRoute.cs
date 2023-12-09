@@ -11,5 +11,6 @@ namespace CityAPI.Class
        public DateTime EndTime { get; set; }
        public ICollection<XYCoordinate>? movementArray { get; set; }
        public float approximateTravelTime { get; set; }
+
     }
 }

@@ -5,18 +5,34 @@ using DijkstraAlgorithm;
 using System.Text.Json;
 using CityAPI.Class;
 
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<CycleDB>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000",
+                                "https://localhost:3000");
+        });
+});
 var app = builder.Build();
 
+
+app.UseCors();
+
+
 app.MapGet("/cycles", async (CycleDB db) =>
-    await db.Cycles.Include(b=> b.Routes).ThenInclude(b=>b.movementArray).ToListAsync());
+    await db.Cycles.OrderByDescending(a=> a.Id).Take(50).OrderBy(b=>b.Id).ToListAsync());
 
 /*
 app.MapGet("/cycles/complete", async (CycleDB db) =>
     await db.Cycles.Where(t => t.IsComplete).ToListAsync());
 */
+app.MapGet("/cycles/latest", async (CycleDB db) =>
+    await db.Cycles.OrderByDescending(a => a.Id).Take(2).Include(b=>b.Routes).ToListAsync());
 
 app.MapGet("/cycleitems/{id}", async (int id, CycleDB db) =>
     await db.Cycles.FindAsync(id)
@@ -30,7 +46,8 @@ app.MapGet("/dijkstra/{from}/{to}", async (int from, int to, CycleDB db) =>
     var results = graph.ShortestPath(from, to);
     string returnObject = "";
     List<CityRoute> routeResults = new List<CityRoute>();
-    var currentCycle = db.Cycles.Include(b => b.Routes).OrderBy(n => n.Id).Last();
+
+    var currentCycle = db.Cycles.Include(b => b.Routes).OrderBy(n => n.Id).LastOrDefault();
     if(currentCycle.Routes == null)
     {
         currentCycle.Routes = new List<CityRoute>();
@@ -50,8 +67,10 @@ app.MapGet("/dijkstra/{from}/{to}", async (int from, int to, CycleDB db) =>
     return JsonSerializer.Serialize<IEnumerable<CityRoute>>(routeResults);
 });
 
+
 app.MapPost("/cycleitems", async (Cycle cycle, CycleDB db) =>
 {
+    Console.WriteLine(cycle);
     db.Cycles.Add(cycle);
     await db.SaveChangesAsync();
 
